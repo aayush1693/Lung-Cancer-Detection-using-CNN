@@ -134,10 +134,27 @@ one_hot_encoded_Y = pd.get_dummies(Y).values
 
 """One hot encoding will help us to train a model which can predict soft probabilities of an image being from each class with the highest probability for the class to which it really belongs."""
 
+import numpy as np
+from sklearn.model_selection import train_test_split
+from keras.utils import to_categorical
+
+
+Y = np.array(Y)
+
+# Convert the labels to a 1D array
+Y_flattened = Y.ravel()
+
+# Ensure the labels are one-hot encoded
+one_hot_encoded_Y = to_categorical(Y_flattened)
+
+# Split the data into training and validation sets
 X_train, X_val, Y_train, Y_val = train_test_split(X, one_hot_encoded_Y,
-												test_size = SPLIT,
-												random_state = 2022)
+                                                  test_size=SPLIT,
+                                                  random_state=2022)
+
+# Print the shapes to verify
 print(X_train.shape, X_val.shape)
+print(Y_train.shape, Y_val.shape)
 
 """In this step, we will achieve the shuffling of the data automatically because the train_test_split function split the data randomly in the given ratio.
 
@@ -265,3 +282,42 @@ history = model.fit(X_train, Y_train,
 					epochs = EPOCHS,
 					verbose = 1,
 					callbacks = [es, lr, myCallback()])
+
+"""Let’s visualize the training and validation accuracy with each epoch."""
+
+history_df = pd.DataFrame(history.history)
+history_df.loc[:,['loss','val_loss']].plot()
+history_df.loc[:,['accuracy','val_accuracy']].plot()
+plt.show()
+
+"""**Model Evaluation**
+
+---
+
+Now as we have our model ready let’s evaluate its performance on the validation data using different metrics. For this purpose, we will first predict the class for the validation data using this model and then compare the output with the true labels.
+"""
+
+Y_pred = model.predict(X_val)
+Y_val = np.argmax(Y_val, axis=1)
+Y_pred = np.argmax(Y_pred, axis=1)
+
+"""Let’s draw the confusion metrics and classification report using the predicted labels and the true labels."""
+
+metrics.confusion_matrix(Y_val, Y_pred)
+
+Y_pred = model.predict(X_val)
+
+Y_pred = np.argmax(Y_pred, axis=1)
+
+# Get unique classes from predictions and true labels
+unique_classes = np.unique(np.concatenate((Y_val, Y_pred)))
+
+# Filter target names to match unique classes
+target_names = [classes[i] for i in unique_classes]
+
+# Print classification report with filtered target names
+print(metrics.classification_report(Y_val, Y_pred, target_names=target_names))
+
+"""# Conclusion:
+Indeed the performance of our simple CNN model is very good as the f1-score for each class is above 0.90 which means our model’s prediction is correct over 90% of the time. This is what we have achieved with a simple CNN model.
+"""
